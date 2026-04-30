@@ -1,26 +1,10 @@
-# 👋 Hi, I'm [@WineChord](https://github.com/WineChord)
+### 👋 Hi, I’m [@WineChord](https://github.com/WineChord)
 
-<p>
-  <a href="https://github.com/WineChord">
-    <img src="https://github-readme-stats.vercel.app/api?username=WineChord&amp;show_icons=true&amp;rank_icon=github&amp;hide_border=false&amp;theme=default" alt="WineChord's GitHub stats" />
-  </a>
-</p>
+![stats](https://github-stats-extended.vercel.app/api?username=WineChord&role=OWNER,ORGANIZATION_MEMBER,COLLABORATOR&v=flush)
 
-## 🚀 Featured work
+### 🚀 Featured work
 
-<p>
-  <a href="https://github.com/trpc-group/trpc-agent-go">
-    <img width="49%" src="https://github-readme-stats.vercel.app/api/pin/?username=trpc-group&amp;repo=trpc-agent-go&amp;theme=default" alt="trpc-group/trpc-agent-go" />
-  </a>
-  <a href="https://github.com/trpc-group/trpc-go">
-    <img width="49%" src="https://github-readme-stats.vercel.app/api/pin/?username=trpc-group&amp;repo=trpc-go&amp;theme=default" alt="trpc-group/trpc-go" />
-  </a>
-</p>
-<p>
-  <a href="https://github.com/trpc-group/trpc-a2a-go">
-    <img width="49%" src="https://github-readme-stats.vercel.app/api/pin/?username=trpc-group&amp;repo=trpc-a2a-go&amp;theme=default" alt="trpc-group/trpc-a2a-go" />
-  </a>
-  <a href="https://github.com/trpc-group/trpc-mcp-go">
-    <img width="49%" src="https://github-readme-stats.vercel.app/api/pin/?username=trpc-group&amp;repo=trpc-mcp-go&amp;theme=default" alt="trpc-group/trpc-mcp-go" />
-  </a>
-</p>
+[![trpc-agent-go](https://github-readme-stats-ouuan.vercel.app/api/pin/?username=trpc-group&repo=trpc-agent-go&show_owner=true&description_lines_count=4)](https://github.com/trpc-group/trpc-agent-go)
+[![trpc-go](https://github-readme-stats-ouuan.vercel.app/api/pin/?username=trpc-group&repo=trpc-go&show_owner=true&description_lines_count=4)](https://github.com/trpc-group/trpc-go)
+[![trpc-a2a-go](https://github-readme-stats-ouuan.vercel.app/api/pin/?username=trpc-group&repo=trpc-a2a-go&show_owner=true&description_lines_count=4)](https://github.com/trpc-group/trpc-a2a-go)
+[![trpc-mcp-go](https://github-readme-stats-ouuan.vercel.app/api/pin/?username=trpc-group&repo=trpc-mcp-go&show_owner=true&description_lines_count=4)](https://github.com/trpc-group/trpc-mcp-go)
