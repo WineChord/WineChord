@@ -1,31 +1,83 @@
-name: Generate contribution snake
+name: Generate profile assets
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "23 2 * * *"
   workflow_dispatch:
   push:
     branches:
       - main
 
-permissions:
-  contents: write
+permissions: {}
+
+concurrency:
+  group: profile-assets
+  cancel-in-progress: false
 
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Generate static GitHub statistics
+        uses: cicirello/user-statistician@2186e7d4dc5e2ff4f2dd69b70af09beccf9f8b98 # v1
+        with:
+          image-file: dist/github-user-stats.svg
+          colors: dark-dimmed
+          commit-and-push: false
+          fail-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate contribution snake
-        uses: Platane/snk/svg-only@v3
+        uses: Platane/snk/svg-only@d8f6715049803e982ee5ff501b6b9b7d5deeb09b # v3
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: |
             dist/github-contribution-grid-snake.svg
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
 
-      - name: Push snake SVGs to output branch
-        uses: crazy-max/ghaction-github-pages@v4
+      - name: Validate generated SVGs
+        run: python3 .github/scripts/validate_profile_assets.py dist
+
+      - name: Upload validated profile assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: profile-assets
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Download validated profile assets
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: profile-assets
+          path: dist
+
+      - name: Revalidate downloaded SVGs
+        run: python3 .github/scripts/validate_profile_assets.py dist
+
+      - name: Publish profile assets to output branch
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4
         with:
           target_branch: output
           build_dir: dist
