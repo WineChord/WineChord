@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html import escape
 import json
 import os
@@ -15,18 +15,6 @@ from urllib.request import Request, urlopen
 
 API_ROOT = "https://api.github.com"
 API_VERSION = "2026-03-10"
-GRAPHQL_QUERY = """
-query($login: String!) {
-  user(login: $login) {
-    contributionsCollection {
-      totalCommitContributions
-      totalPullRequestReviewContributions
-    }
-  }
-}
-"""
-
-
 class GitHubAPIError(RuntimeError):
     pass
 
@@ -88,60 +76,26 @@ def fetch_repositories(username: str, token: str) -> list[dict[str, Any]]:
         page += 1
 
 
-def fetch_search_count(username: str, item_type: str, token: str) -> int:
-    query = urlencode({"q": f"author:{username} type:{item_type}", "per_page": 1})
-    response = request_json(f"{API_ROOT}/search/issues?{query}", token)
+def fetch_search_count(search_query: str, endpoint: str, token: str) -> int:
+    query = urlencode({"q": search_query, "per_page": 1})
+    response = request_json(f"{API_ROOT}/search/{endpoint}?{query}", token)
     if not isinstance(response, dict) or not isinstance(response.get("total_count"), int):
-        raise GitHubAPIError(f"GitHub {item_type} search response was invalid")
+        raise GitHubAPIError(f"GitHub {endpoint} search response was invalid")
     return response["total_count"]
 
 
-def fetch_contributions(username: str, token: str) -> Optional[dict[str, int]]:
-    response = request_json(
-        f"{API_ROOT}/graphql",
-        token,
-        {"query": GRAPHQL_QUERY, "variables": {"login": username}},
-    )
-    if not isinstance(response, dict):
-        raise GitHubAPIError("GitHub GraphQL response was invalid")
-
-    errors = response.get("errors")
-    if errors:
-        error_types = {error.get("type") for error in errors if isinstance(error, dict)}
-        if "RESOURCE_LIMITS_EXCEEDED" in error_types:
-            print(
-                "::warning::GitHub contribution metrics exceeded the per-query resource "
-                "budget; publishing the remaining verified statistics."
-            )
-            return None
-        messages = "; ".join(
-            error.get("message", "Unknown GraphQL error")
-            for error in errors
-            if isinstance(error, dict)
-        )
-        raise GitHubAPIError(f"GitHub GraphQL returned errors: {messages}")
-
-    try:
-        collection = response["data"]["user"]["contributionsCollection"]
-        return {
-            "commits": int(collection["totalCommitContributions"]),
-            "reviews": int(collection["totalPullRequestReviewContributions"]),
-        }
-    except (KeyError, TypeError, ValueError):
-        raise GitHubAPIError("GitHub contribution metrics response was invalid") from None
-
-
-def format_value(value: Optional[int]) -> str:
-    return "—" if value is None else f"{value:,}"
+def format_value(value: int) -> str:
+    return f"{value:,}"
 
 
 def render_card(
     username: str,
     profile: dict[str, Any],
     repositories: list[dict[str, Any]],
+    commits: int,
     pull_requests: int,
     issues: int,
-    contributions: Optional[dict[str, int]],
+    reviews: int,
 ) -> str:
     original_repositories = [repo for repo in repositories if not repo.get("fork")]
     stars = sum(int(repo.get("stargazers_count", 0)) for repo in original_repositories)
@@ -154,13 +108,13 @@ def render_card(
         ("Followers", int(profile.get("followers", 0))),
     )
     right_stats = (
-        ("Commits (last year)", contributions["commits"] if contributions else None),
+        ("Commits authored (last year)", commits),
         ("Pull requests authored", pull_requests),
         ("Issues authored", issues),
-        ("Code reviews (last year)", contributions["reviews"] if contributions else None),
+        ("Pull requests reviewed", reviews),
     )
 
-    def render_column(stats: tuple[tuple[str, Optional[int]], ...], x: int) -> str:
+    def render_column(stats: tuple[tuple[str, int], ...], x: int) -> str:
         rows = []
         for index, (label, value) in enumerate(stats):
             y = 88 + index * 34
@@ -217,16 +171,27 @@ def main() -> int:
         if not isinstance(profile, dict):
             raise GitHubAPIError("GitHub profile response was invalid")
         repositories = fetch_repositories(arguments.username, token)
-        pull_requests = fetch_search_count(arguments.username, "pr", token)
-        issues = fetch_search_count(arguments.username, "issue", token)
-        contributions = fetch_contributions(arguments.username, token)
+        since = (datetime.now(timezone.utc) - timedelta(days=365)).date().isoformat()
+        commits = fetch_search_count(
+            f"author:{arguments.username} author-date:>={since}", "commits", token
+        )
+        pull_requests = fetch_search_count(
+            f"author:{arguments.username} type:pr", "issues", token
+        )
+        issues = fetch_search_count(
+            f"author:{arguments.username} type:issue", "issues", token
+        )
+        reviews = fetch_search_count(
+            f"reviewed-by:{arguments.username} type:pr", "issues", token
+        )
         card = render_card(
             arguments.username,
             profile,
             repositories,
+            commits,
             pull_requests,
             issues,
-            contributions,
+            reviews,
         )
     except GitHubAPIError as error:
         print(f"::error::{error}")
