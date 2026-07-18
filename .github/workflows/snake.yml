@@ -34,13 +34,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Restore last published contribution snakes
+        run: |
+          mkdir -p dist
+          for asset in github-contribution-grid-snake.svg github-contribution-grid-snake-dark.svg; do
+            curl --fail --silent --show-error --location --retry 3 \
+              --output "dist/$asset" \
+              "https://raw.githubusercontent.com/${{ github.repository }}/output/$asset"
+          done
+
       - name: Generate contribution snake
+        id: snake
+        continue-on-error: true
         uses: Platane/snk/svg-only@d8f6715049803e982ee5ff501b6b9b7d5deeb09b # v3
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+            generated-snakes/github-contribution-grid-snake.svg
+            generated-snakes/github-contribution-grid-snake-dark.svg?palette=github-dark
+
+      - name: Use newly generated contribution snakes
+        if: steps.snake.outcome == 'success'
+        run: cp generated-snakes/*.svg dist/
+
+      - name: Report contribution snake fallback
+        if: steps.snake.outcome == 'failure'
+        run: >-
+          echo "::warning::Contribution snake generation failed;
+          retaining the last validated snake assets."
 
       - name: Validate generated SVGs
         run: python3 .github/scripts/validate_profile_assets.py dist
